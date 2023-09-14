@@ -15,7 +15,7 @@ class autoencoderMLP4Layer(nn.Module):
     self.fc3 = nn.Linear(N_bottlenecks, N2)
     self.fc4 = nn.Linear(N2, N_output)
     self.type = "MLP4"
-    self.input_shape = (1,28*28)
+    self.input_shape = (1, 784) 
 
   def forward(self,X):
     #encoder step
@@ -33,6 +33,3 @@ class autoencoderMLP4Layer(nn.Module):
 
     return X
   
-
-themodel = autoencoderMLP4Layer()
-summary(themodel,(1,28*28))
