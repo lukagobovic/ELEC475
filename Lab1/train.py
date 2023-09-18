@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     # Model setup
     model = autoencoderMLP4Layer(N_bottlenecks=args.z).to(device)
-    summary(model, (1, 784))  # Input shape should be (1, 784) # Input shape should be (1, 28, 28)
+    summary(model, (1, 784)) 
 
     # Data loader setup (You need to define your data loader here)
     # train_loader = ...
