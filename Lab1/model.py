@@ -33,3 +33,11 @@ class autoencoderMLP4Layer(nn.Module):
 
     return X
   
+  def encode(self, x):
+    return self.fc2(F.relu(self.fc1(x)))
+
+  def decode(self, z):
+    return torch.sigmoid(self.fc4(F.relu(self.fc3(z))))
+
+  def full_forward(self, x):
+    return self.decode(self.encode(x))
