@@ -66,19 +66,19 @@ if __name__ == "__main__":
     # Data loader setup (You need to define your data loader here)
     # train_loader = ...
     train_transform = transforms.Compose([transforms.ToTensor()])
-    transform = transforms.Compose([transforms.ToTensor()])
+    test_transform = transforms.Compose([transforms.ToTensor()])
     train_set = MNIST('./data/mnist', train = True, download = True, transform = train_transform)
-    test_dataset = MNIST('./data/mnist', train=False, download=True, transform=transform)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=2048, shuffle=False)
-
+    test_dataset = MNIST('./data/mnist', train=False, download=True, transform=test_transform)
+    
+    test_loader = torch.utils.data.DataLoader(test_dataset,args.b, shuffle=False)
     train_loader = torch.utils.data.DataLoader(train_set,args.b,shuffle=True)
 
     # Loss function and optimizer
     loss_fn = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Learning rate scheduler
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min')
 
     # Training
     train(args.e, optimizer, model, loss_fn, train_loader, scheduler, device)

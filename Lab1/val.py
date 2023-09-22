@@ -17,7 +17,7 @@ print(f"Using device: {device}")
 
 # Instantiate your model
 model = autoencoderMLP4Layer(N_input=784, N_bottlenecks=8).to(device)
-model.load_state_dict(torch.load("MLP.8.pth",map_location=torch.device('cpu')))
+model.load_state_dict(torch.load("MLP.8.pth"))
 model.eval()
 
 class AddGaussianNoise(object):
@@ -57,35 +57,32 @@ with torch.no_grad():  # Disable gradient calculations
             break
         else:
             inputs = batch[0].to(device)  # Move inputs to GPU if available
-            noisy_inputs = AddGaussianNoise(0., 0.2)(inputs)
+            noisy_inputs = AddGaussianNoise(0., 0.2)(inputs).to(device)
             output = model(noisy_inputs.view(3, -1))  # Pass the noisy inputs through the model
             display_images(inputs, noisy_inputs, output)
         i+=1
 
-
-with torch.no_grad(): 
+with torch.no_grad():
     def interpolate_and_plot(model, image1, image2, num_steps):
-    # Flatten and encode the input images
-        z1 = model.encode(image1.view(1, -1))
-        z2 = model.encode(image2.view(1, -1))
-        
+        # Flatten and encode the input images
+        z1 = model.encode(image1.view(1, -1)).to(device)
+        z2 = model.encode(image2.view(1, -1)).to(device)
+
         # Linearly interpolate between the two bottleneck tensors
-        interpolated_z = torch.zeros(num_steps, *z1.size())
-        for i in range(num_steps):
-            alpha = i / (num_steps - 1)  # Interpolation factor
-            interpolated_z[i] = alpha * z1 + (1 - alpha) * z2
-        
+        alphas = torch.linspace(0, 1, num_steps, device=device)
+        interpolated_z = torch.lerp(z1, z2, alphas.unsqueeze(1))
+
         # Decode the interpolated bottleneck tensors and plot the results
         plt.figure(figsize=(15, 5))
         for i in range(num_steps):
-            reconstructed_image = model.decode(interpolated_z[i]).view(1, 28, 28)
+            reconstructed_image = model.decode(interpolated_z[i].unsqueeze(0)).view(1, 28, 28)
             plt.subplot(1, num_steps, i + 1)
             plt.imshow(reconstructed_image.squeeze().cpu().detach().numpy(), cmap='gray')
             plt.axis('off')
-        
+
         plt.show()
 
 
-    example_images = [test_dataset[i][0] for i in range(2)]  # Adjust as needed
+    example_images = [test_dataset[i][0].to(device) for i in range(2)]  # Adjust as needed
     interpolate_and_plot(model, example_images[0], example_images[1], num_steps=8)
 
