@@ -12,7 +12,7 @@ from torchvision import transforms
 from torchvision.datasets import MNIST  # Import your autoencoder class from model.py
 import datetime
 
-def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device):
+def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device, savepath):
     print("training")
     model.train()
     losses_train = []
@@ -41,7 +41,7 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device):
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Training Loss')
-    plt.savefig("./outputs")
+    plt.savefig(savepath)
     plt.close()
 
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min')
 
     # Training
-    train(args.e, optimizer, model, loss_fn, train_loader, scheduler, device)
+    train(args.e, optimizer, model, loss_fn, train_loader, scheduler, device,args.p)
 
     # Save the trained model
     torch.save(model.state_dict(), args.s)
