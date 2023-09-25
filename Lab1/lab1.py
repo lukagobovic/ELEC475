@@ -26,7 +26,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 model = autoencoderMLP4Layer(N_input=784, N_bottlenecks=8).to(device)
-model.load_state_dict(torch.load(model_weights_path))
+model.load_state_dict(torch.load(model_weights_path, map_location=torch.device('cpu')))
 model.eval()
 
 with torch.no_grad():  # Disable gradient calculations
@@ -39,11 +39,13 @@ with torch.no_grad():  # Disable gradient calculations
         plt.imshow(output.squeeze().detach().cpu().numpy().reshape(28, 28), cmap='gray')
         plt.show()
 
-    # Loop through the test dataset, resize each image to 784 dimensions, pass them through the model, and display input and output
-    for i, (input, _) in enumerate(test_loader):
-        if i >= 2:  # Limit the number of iterations to 3
-            break
-        input = input.view(input.size(0), -1).to(device)  # Flatten the input and move to GPU if available
+    num_samples = len(test_loader.dataset)
+    indices = random.sample(range(num_samples), 2)
+
+    # Loop through the selected indices, resize the images, pass them through the model, and display input and output
+    for i in indices:
+        input, _ = test_loader.dataset[i]
+        input = input.view(1, -1).to(device)  # Flatten the input and move to GPU if available
         output = model(input)
         display_input_output(input, output)
 
