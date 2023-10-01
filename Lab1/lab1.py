@@ -7,7 +7,6 @@ import random
 from model import autoencoderMLP4Layer
 import argparse
 
-#Argument Parser to read the input file for the model weights
 parser = argparse.ArgumentParser(description='Run lab1 script with model weights.')
 parser.add_argument('-l', '--model-weights', type=str, required=True,
                     help='Path to the model weights file.')
@@ -16,7 +15,6 @@ model_weights_path = args.model_weights
 
 transform = transforms.Compose([transforms.ToTensor()])
 
-# Create a dataset and DataLoader for your MNIST data
 test_dataset = MNIST('./data/mnist', train=False, download=True, transform=transform)
 test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
@@ -29,8 +27,7 @@ model = autoencoderMLP4Layer(N_input=784, N_bottlenecks=8).to(device)
 model.load_state_dict(torch.load(model_weights_path, map_location=torch.device('cpu')))
 model.eval()
 
-with torch.no_grad():  # Disable gradient calculations
-    # Function to display input and output images side by side
+with torch.no_grad():  
     def display_input_output(img, output):
         f = plt.figure()
         f.add_subplot(1,2,1)
@@ -45,7 +42,7 @@ with torch.no_grad():  # Disable gradient calculations
     # Loop through the selected indices, resize the images, pass them through the model, and display input and output
     for i in indices:
         input, _ = test_loader.dataset[i]
-        input = input.view(1, -1).to(device)  # Flatten the input and move to GPU if available
+        input = input.view(1, -1).to(device)  
         output = model(input)
         display_input_output(input, output)
 
@@ -54,7 +51,7 @@ def add_gaussian_noise(tensor, mean, std):
     noisy_tensor = tensor + noise
     return noisy_tensor
 
-with torch.no_grad():  # Disable gradient calculations
+with torch.no_grad():  
 # Function to display input, noisy, and output images side by side
     def display_images(inputs, noisy, outputs):
         fig, axes = plt.subplots(ncols = 3, nrows = 2)

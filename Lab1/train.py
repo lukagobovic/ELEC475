@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torchsummary as ts
 from torchvision import transforms
-from torchvision.datasets import MNIST  # Import your autoencoder class from model.py
+from torchvision.datasets import MNIST 
 import datetime
 
 def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device, savepath):
@@ -32,7 +32,7 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device, 
 
         scheduler.step(loss_train)
 
-        losses_train.append(loss_train / len(train_loader))  # Append the loss for the entire epoch
+        losses_train.append(loss_train / len(train_loader))  
 
         print('{} Epoch {}, Training loss {}'.format(datetime.datetime.now(), epoch, loss_train / len(train_loader)))
 
@@ -46,7 +46,6 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device, 
 
 
 if __name__ == "__main__":
-    # Argument parsing
     parser = argparse.ArgumentParser(description='Autoencoder Training')
     parser.add_argument('-z', type=int, default=8, help='Bottleneck size')
     parser.add_argument('-e', type=int, default=50, help='Number of epochs')
@@ -55,16 +54,12 @@ if __name__ == "__main__":
     parser.add_argument('-p', type=str, default='loss_MLP.8.png', help='Plot save path')
     args = parser.parse_args()
 
-    # Device setup
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")  # Print the device being used
 
-    # Model setup
     model = autoencoderMLP4Layer(N_bottlenecks=args.z).to(device)
     summary(model, (1, 784)) 
 
-    # Data loader setup (You need to define your data loader here)
-    # train_loader = ...
     train_transform = transforms.Compose([transforms.ToTensor()])
     test_transform = transforms.Compose([transforms.ToTensor()])
     train_set = MNIST('./data/mnist', train = True, download = True, transform = train_transform)
@@ -73,17 +68,13 @@ if __name__ == "__main__":
     test_loader = torch.utils.data.DataLoader(test_dataset,args.b, shuffle=False)
     train_loader = torch.utils.data.DataLoader(train_set,args.b,shuffle=True)
 
-    # Loss function and optimizer
     loss_fn = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    # Learning rate scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min')
 
-    # Training
     train(args.e, optimizer, model, loss_fn, train_loader, scheduler, device,args.p)
 
-    # Save the trained model
     torch.save(model.state_dict(), args.s)
 
     
