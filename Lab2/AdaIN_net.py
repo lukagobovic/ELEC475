@@ -144,24 +144,30 @@ class AdaIN_net(nn.Module):
         feat_std = feat_var.sqrt().view(N, C, 1, 1)
         feat_mean = feat.view(N, C, -1).mean(dim=2).view(N, C, 1, 1)
         return feat_mean, feat_std
-
+    
     def forward(self, content, style, alpha=1.0):
         assert 0 <= alpha <= 1
         if self.training:  # training
             #   calculate Eq. (12) and Eq. (13), and return L_c and L_s from Eq. (11)
-            #   your code here ...
-            content_features = self.encode(content)
-            style_features = self.encode(style)
+            style_feats = self.encode(style)
+            _,_,_,content_feat = self.encode(content)
+            t = self.adain(content_feat, style_feats[-1])
+            t = alpha * t + (1 - alpha) * content_feat
 
-            loss_c = self.content_loss(content_features[3], content_features[3])
-            loss_s = self.style_loss(content_features[0], style_features[0])
+            g_t = self.decode(t)
+            g_t_feats = self.encode(g_t)
+
+            loss_c = self.content_loss(g_t_feats[-1], t)
+            loss_s = self.style_loss(g_t_feats[0], style_feats[0])
+
             for i in range(1, 4):
-                loss_s += self.style_loss(content_features[i], style_features[i])
+                loss_s += self.style_loss(g_t_feats[i], style_feats[i])
 
             return loss_c, loss_s
         else:  # inference
-            content_features = self.encode(content)
-            stylized_features = [self.adain(content_features[i], content_features[i]) for i in range(4)]
-            stylized_output = self.decode(stylized_features[3])  # Using relu4_1 features for decoding
-
-            return self.decode(stylized_output)
+            #
+            #   your code here ...
+            style_feats = self.encode(style)
+            _,_,_,content_feat = self.encode(content)
+            t = self.adain(content_feat, style_feats[-1])
+            t = alpha * t + (1 - alpha) * content_feat
