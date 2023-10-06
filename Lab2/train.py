@@ -83,15 +83,11 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
     encoder.load_state_dict(torch.load(encoder_path, map_location=device))
     decoder = encoder_decoder.decoder
 
-        # Freeze the encoder's weights
-    for param in encoder.parameters():
-        param.requires_grad = False
+    model = AdaIN_net(encoder, decoder).to(device) 
+    model.train() 
 
-    model = AdaIN_net(encoder, decoder).to(device)  # Initialize decoder weights using the function from AdaIN_net.py
-    # Define the optimizer
     optimizer = Adam(model.decoder.parameters(), lr=0.001)
-
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=gamma)  # Adjust the step_size and gamma as needed
+    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)  # Adjust the step_size and gamma as needed
 
     content_losses = []
     style_losses = []
@@ -100,16 +96,13 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
     avg_content_losses = []
     avg_style_losses = []
     avg_total_losses = []
-
-    model.train()  # Set the model to training mode
+  # Set the model to training mode
 
     # Training loop
     for epoch in range(1, epochs + 1):
-        for batch, (content_batch, style_batch) in enumerate(zip(content_loader, style_loader)):  # Loop through content and style loaders together
+        for batch, (content_batch, style_batch) in enumerate(zip(content_loader, style_loader)):  
             content_batch = content_batch.to(device)
             style_batch = style_batch.to(device)
-
-            optimizer.zero_grad()
 
             # Perform style transfer
             content_loss, style_loss = model(content_batch, style_batch)
@@ -118,35 +111,16 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
             total_loss = gamma * content_loss + style_loss
 
             # Backpropagation
+            optimizer.zero_grad()
             total_loss.backward()
-            optimizer.step()
-
-            print(f"Epoch [{epoch}/{epochs}] Batch [{batch + 1}/{len(content_loader)}] Content Loss: {content_loss.item():.4f} Style Loss: {style_loss.item():.4f}")
-
-            # if (batch + 1) % 5 == 0:
-            #     # Save a preview image
-            #    with torch.no_grad():
-            #     preview_image = model(content_batch, style_batch)
-                
-            #     # Check if preview_image is a tuple and extract the tensor
-            #     if isinstance(preview_image, tuple):
-            #         preview_image = preview_image[0]  # Assuming the tensor is the first element of the tuple
-
-            #     # Save the preview image
-            #     if args.preview_path is not None:
-            #         if preview_image is not None and len(preview_image.shape) == 3:  # Check if it's a valid image tensor
-            #             save_path = os.path.join(args.preview_path, f"preview_epoch_{epoch}_batch_{batch + 1}.png")
-            #             torchvision.utils.save_image(preview_image, save_path)
-            #         else:
-            #             print("Invalid preview image. Preview images will not be saved.")
-            #     else:
-            #         print("Preview path not provided. Preview images will not be saved.")
-
+            optimizer.step()  # Update the model's parameters after backward pass
 
             content_losses.append(content_loss.item())
             style_losses.append(style_loss.item())
             total_losses.append(total_loss.item())
-            scheduler.step()
+            scheduler.step()  # Adjust the learning rate after each batch
+            print(f"Epoch [{epoch}/{epochs}] Batch [{batch + 1}/{len(content_loader)}] Content Loss: {content_loss.item():.4f} Style Loss: {style_loss.item():.4f}")
+
 
         # Save the final model at the end of each epoch if needed
         avg_content_loss = sum(content_losses[-len(content_loader):]) / len(content_loader)
@@ -156,6 +130,8 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
         avg_content_losses.append(avg_content_loss)
         avg_style_losses.append(avg_style_loss)
         avg_total_losses.append(avg_total_loss)
+
+        #print(f"Content Loss: {avg_content_loss:.2f}, Style Loss: {avg_style_loss:.2f}, Total Loss: {avg_total_loss:.2f}")
 
         torch.save(model.decoder.state_dict(), decoder_path) 
 
