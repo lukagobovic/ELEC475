@@ -87,7 +87,7 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
     model.train() 
 
     optimizer = Adam(model.decoder.parameters(), lr=0.001)
-    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)  # Adjust the step_size and gamma as needed
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, gamma=gamma)  # Adjust the step_size and gamma as needed
 
     content_losses = []
     style_losses = []
@@ -118,7 +118,7 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
             content_losses.append(content_loss.item())
             style_losses.append(style_loss.item())
             total_losses.append(total_loss.item())
-            scheduler.step()  # Adjust the learning rate after each batch
+              # Adjust the learning rate after each batch
             print(f"Epoch [{epoch}/{epochs}] Batch [{batch + 1}/{len(content_loader)}] Content Loss: {content_loss.item():.4f} Style Loss: {style_loss.item():.4f}")
 
 
@@ -130,7 +130,7 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
         avg_content_losses.append(avg_content_loss)
         avg_style_losses.append(avg_style_loss)
         avg_total_losses.append(avg_total_loss)
-
+        scheduler.step()
         #print(f"Content Loss: {avg_content_loss:.2f}, Style Loss: {avg_style_loss:.2f}, Total Loss: {avg_total_loss:.2f}")
 
         torch.save(model.decoder.state_dict(), decoder_path) 
