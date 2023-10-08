@@ -24,7 +24,11 @@ def train_transform():
     transform_list = [
         transforms.Resize(size=(512, 512)),
         transforms.RandomCrop(256),
-        transforms.ToTensor()
+
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+
+
     ]
     return transforms.Compose(transform_list)
 
@@ -72,11 +76,12 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
     content_transform = train_transform()
     style_transform = train_transform()
     
-    content_dataset = custom_dataset(content_dir, transform=content_transform)
+    content_dataset = custom_dataset(content_dir,content_transform )
     content_loader = DataLoader(content_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
 
-    style_dataset = custom_dataset(style_dir, transform=style_transform)
+    style_dataset = custom_dataset(style_dir,style_transform)
     style_loader = DataLoader(style_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+
 
     # Initialize the model
     encoder = encoder_decoder.encoder
@@ -86,8 +91,8 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
     model = AdaIN_net(encoder, decoder).to(device) 
     model.train() 
 
-    optimizer = Adam(model.decoder.parameters(), lr=0.001)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, gamma=gamma)  # Adjust the step_size and gamma as needed
+    optimizer = Adam(decoder.parameters(), lr=0.001)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size = 5, verbose = True, gamma = 0.5)  # Adjust the step_size and gamma as needed
 
     content_losses = []
     style_losses = []
@@ -98,17 +103,20 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
     avg_total_losses = []
   # Set the model to training mode
 
-    # Training loop
     for epoch in range(1, epochs + 1):
-        for batch, (content_batch, style_batch) in enumerate(zip(content_loader, style_loader)):  
-            content_batch = content_batch.to(device)
-            style_batch = style_batch.to(device)
+        # print('epoch:',epoch)
+        total_content_loss = 0.0
+        total_style_loss = 0.0
+        total_total_loss = 0.0
+        for batch in range(len(content_loader)):  
+            content_images = next(iter(content_loader)).to(device)
+            style_images = next(iter(style_loader)).to(device)
 
             # Perform style transfer
-            content_loss, style_loss = model(content_batch, style_batch)
+            content_loss, style_loss = model(content_images, style_images)
 
             # Calculate the total loss
-            total_loss = gamma * content_loss + style_loss
+            total_loss = content_loss + style_loss  
 
             # Backpropagation
             optimizer.zero_grad()
@@ -118,24 +126,28 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
             content_losses.append(content_loss.item())
             style_losses.append(style_loss.item())
             total_losses.append(total_loss.item())
-              # Adjust the learning rate after each batch
-            print(f"Epoch [{epoch}/{epochs}] Batch [{batch + 1}/{len(content_loader)}] Content Loss: {content_loss.item():.4f} Style Loss: {style_loss.item():.4f}")
+            total_content_loss += content_loss.item()
+            total_style_loss += style_loss.item()
+            total_total_loss += total_loss.item()
+            #scheduler.step()  # Adjust the learning rate after each batch
+            print(f"Epoch [{epoch}/{epochs}] Batch [{batch + 1}/{len(content_loader)}]")
 
-
+        scheduler.step()
         # Save the final model at the end of each epoch if needed
-        avg_content_loss = sum(content_losses[-len(content_loader):]) / len(content_loader)
-        avg_style_loss = sum(style_losses[-len(style_loader):]) / len(style_loader)
-        avg_total_loss = sum(total_losses[-len(content_loader):]) / len(content_loader)
+        avg_content_loss = total_content_loss / len(content_loader)
+        avg_style_loss = total_style_loss / len(content_loader)
+        avg_total_loss = total_total_loss / len(content_loader)
 
         avg_content_losses.append(avg_content_loss)
         avg_style_losses.append(avg_style_loss)
         avg_total_losses.append(avg_total_loss)
-        scheduler.step()
-        #print(f"Content Loss: {avg_content_loss:.2f}, Style Loss: {avg_style_loss:.2f}, Total Loss: {avg_total_loss:.2f}")
+
+        print(f"Content Loss: {avg_content_loss:.2f}, Style Loss: {avg_style_loss:.2f}, Total Loss: {avg_total_loss:.2f}")
 
         torch.save(model.decoder.state_dict(), decoder_path) 
 
     loss_plot(avg_content_losses,avg_style_losses,avg_total_losses, preview_path)           
+       
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train AdaIN style transfer model")

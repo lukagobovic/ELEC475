@@ -150,9 +150,9 @@ class AdaIN_net(nn.Module):
         if self.training:  # training
             #   calculate Eq. (12) and Eq. (13), and return L_c and L_s from Eq. (11)
             style_feats = self.encode(style)
-            _,_,_,content_feat = self.encode(content)
-            t = self.adain(content_feat, style_feats[-1])
-            t = alpha * t + (1 - alpha) * content_feat
+            content_feats = self.encode(content)[-1]
+            t = self.adain(content_feats, style_feats[-1])
+            t = alpha * t + (1 - alpha) * content_feats
 
             g_t = self.decode(t)
             g_t_feats = self.encode(g_t)
@@ -168,6 +168,8 @@ class AdaIN_net(nn.Module):
             #
             #   your code here ...
             style_feats = self.encode(style)
-            _,_,_,content_feat = self.encode(content)
-            t = self.adain(content_feat, style_feats[-1])
-            t = alpha * t + (1 - alpha) * content_feat
+            content_feats = self.encode(content)[-1]
+            feat = self.adain(content_feats, style_feats[-1])
+            feat = alpha * t + (1 - alpha) * content_feats
+
+            return self.decode(feat)
