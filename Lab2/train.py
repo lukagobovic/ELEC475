@@ -24,11 +24,8 @@ def train_transform():
     transform_list = [
         transforms.Resize(size=(512, 512)),
         transforms.RandomCrop(256),
-
         transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-
-
+        #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ]
     return transforms.Compose(transform_list)
 
@@ -98,17 +95,18 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
     style_losses = []
     total_losses = []
   
-    avg_content_losses = []
-    avg_style_losses = []
-    avg_total_losses = []
+    current_content_losses = 0.0
+    current_style_losses = 0.0
+    current_total_losses = 0.0  
   # Set the model to training mode
 
     for epoch in range(1, epochs + 1):
         # print('epoch:',epoch)
-        total_content_loss = 0.0
-        total_style_loss = 0.0
-        total_total_loss = 0.0
         for batch in range(len(content_loader)):  
+            current_content_losses = 0.0
+            current_style_losses = 0.0
+            current_total_losses = 0.0
+
             content_images = next(iter(content_loader)).to(device)
             style_images = next(iter(style_loader)).to(device)
 
@@ -116,37 +114,35 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
             content_loss, style_loss = model(content_images, style_images)
 
             # Calculate the total loss
-            total_loss = content_loss + style_loss  
+            total_loss = content_loss + style_loss  * gamma 
 
             # Backpropagation
             optimizer.zero_grad()
             total_loss.backward()
             optimizer.step()  # Update the model's parameters after backward pass
 
-            content_losses.append(content_loss.item())
-            style_losses.append(style_loss.item())
-            total_losses.append(total_loss.item())
-            total_content_loss += content_loss.item()
-            total_style_loss += style_loss.item()
-            total_total_loss += total_loss.item()
+
+            current_content_losses += content_loss.item()
+            current_style_losses += style_loss.item()
+            current_total_losses += total_loss.item()
             #scheduler.step()  # Adjust the learning rate after each batch
             print(f"Epoch [{epoch}/{epochs}] Batch [{batch + 1}/{len(content_loader)}]")
 
         scheduler.step()
         # Save the final model at the end of each epoch if needed
-        avg_content_loss = total_content_loss / len(content_loader)
-        avg_style_loss = total_style_loss / len(content_loader)
-        avg_total_loss = total_total_loss / len(content_loader)
+        # avg_content_loss = total_content_loss / len(content_loader)
+        # avg_style_loss = total_style_loss / len(content_loader)
+        # avg_total_loss = total_total_loss / len(content_loader)
 
-        avg_content_losses.append(avg_content_loss)
-        avg_style_losses.append(avg_style_loss)
-        avg_total_losses.append(avg_total_loss)
+        content_losses.append(current_content_losses)
+        style_losses.append(current_style_losses)
+        total_losses.append(current_total_losses)
 
-        print(f"Content Loss: {avg_content_loss:.2f}, Style Loss: {avg_style_loss:.2f}, Total Loss: {avg_total_loss:.2f}")
+        print(f"Content Loss: {current_content_losses/len(content_loader):.2f}, Style Loss: {current_style_losses/len(content_loader):.2f}, Total Loss: {current_total_losses/len(content_loader):.2f}")
 
         torch.save(model.decoder.state_dict(), decoder_path) 
 
-    loss_plot(avg_content_losses,avg_style_losses,avg_total_losses, preview_path)           
+    loss_plot(content_losses,style_losses,total_losses, preview_path)           
        
 
 if __name__ == "__main__":
