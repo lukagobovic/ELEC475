@@ -13,6 +13,8 @@ import torch.utils.data as data
 from pathlib import Path
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
+import time
+
 
 cudnn.benchmark = True
 Image.MAX_IMAGE_PIXELS = None  # Disable DecompressionBombError
@@ -89,7 +91,7 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
     model.train() 
 
     optimizer = Adam(decoder.parameters(), lr=0.001)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size = 5, verbose = True, gamma = 0.5)  # Adjust the step_size and gamma as needed
+    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, verbose = True, gamma = 0.85)  # Adjust the step_size and gamma as needed
 
     content_losses = []
     style_losses = []
@@ -98,11 +100,20 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
     current_content_losses = 0.0
     current_style_losses = 0.0
     current_total_losses = 0.0  
+
+    total_data_size = len(content_loader.dataset)  # Assuming content_dataloader is your data loader
+    batch_size = content_loader.batch_size  # Assuming content_dataloader is your data loader
+
+    n_batches = total_data_size // batch_size
+
+    if total_data_size % batch_size != 0:
+        n_batches += 1 
   # Set the model to training mode
 
     for epoch in range(1, epochs + 1):
+        epoch_start_time = time.time()
         # print('epoch:',epoch)
-        for batch in range(len(content_loader)):  
+        for batch in range(n_batches):  
             current_content_losses = 0.0
             current_style_losses = 0.0
             current_total_losses = 0.0
@@ -113,8 +124,10 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
             # Perform style transfer
             content_loss, style_loss = model(content_images, style_images)
 
+            style_loss = gamma  * style_loss
+
             # Calculate the total loss
-            total_loss = content_loss + style_loss  * gamma 
+            total_loss = content_loss + style_loss 
 
             # Backpropagation
             optimizer.zero_grad()
@@ -126,19 +139,28 @@ def train(content_dir, style_dir, gamma, epochs, batch_size, encoder_path, decod
             current_style_losses += style_loss.item()
             current_total_losses += total_loss.item()
             #scheduler.step()  # Adjust the learning rate after each batch
-            print(f"Epoch [{epoch}/{epochs}] Batch [{batch + 1}/{len(content_loader)}]")
+            print(f"Epoch [{epoch}/{epochs}] Batch [{batch + 1}/{n_batches}]")
+
+        epoch_end_time = time.time()
+        epoch_time = epoch_end_time - epoch_start_time
+
+        # Calculate the estimated remaining time for training
+        remaining_time = (epochs - epoch) * epoch_time
+
+        # Print timing information
+        print(f"Epoch [{epoch}/{epochs}] - Time taken: {epoch_time:.2f} seconds - Remaining time: {remaining_time:.2f} seconds")
 
         scheduler.step()
-        # Save the final model at the end of each epoch if needed
+        # Save the final model at the end of each epoch if needed  
         # avg_content_loss = total_content_loss / len(content_loader)
         # avg_style_loss = total_style_loss / len(content_loader)
         # avg_total_loss = total_total_loss / len(content_loader)
 
-        content_losses.append(current_content_losses)
-        style_losses.append(current_style_losses)
-        total_losses.append(current_total_losses)
+        content_losses.append(current_content_losses / n_batches)
+        style_losses.append(current_style_losses / n_batches)
+        total_losses.append(current_total_losses / n_batches)
 
-        print(f"Content Loss: {current_content_losses/len(content_loader):.2f}, Style Loss: {current_style_losses/len(content_loader):.2f}, Total Loss: {current_total_losses/len(content_loader):.2f}")
+        print(f"Content Loss: {current_content_losses/n_batches:.2f}, Style Loss: {current_style_losses/n_batches:.2f}, Total Loss: {current_total_losses/n_batches:.2f}")
 
         torch.save(model.decoder.state_dict(), decoder_path) 
 
