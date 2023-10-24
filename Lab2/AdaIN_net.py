@@ -4,7 +4,6 @@
 #   Adapted from:
 #       https://github.com/naoto0804/pytorch-AdaIN
 #
-
 import torch.nn as nn
 
 class encoder_decoder:

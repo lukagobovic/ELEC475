@@ -28,17 +28,6 @@ def train_transform():
     ]
     return transforms.Compose(transform_list)
 
-def loss_plot(content_losses, style_losses,total_losses, save_path):
-    plt.figure(figsize=(10, 6))
-    plt.plot(total_losses, label='Content + Style', color='blue')
-    plt.plot(content_losses, label='Content', color='orange')
-    plt.plot(style_losses, label='Style', color='green')
-    plt.xlabel('epoch')
-    plt.ylabel('loss')
-    plt.legend()
-    plt.savefig(save_path)
-    plt.show()
-
 def train(content_dir, style_dir, gamma1, epochs, batch_size, encoder_path, decoder_path, preview_path, use_cuda):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -52,7 +41,6 @@ def train(content_dir, style_dir, gamma1, epochs, batch_size, encoder_path, deco
     style_dataset = custom_dataset(style_dir,style_transform)
     style_loader = DataLoader(style_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
 
-    # Initialize the model
     encoder = encoder_decoder.encoder
     encoder.load_state_dict(torch.load(encoder_path, map_location=device))
     decoder = encoder_decoder.decoder
@@ -61,7 +49,7 @@ def train(content_dir, style_dir, gamma1, epochs, batch_size, encoder_path, deco
     model.train() 
 
     optimizer = Adam(model.decoder.parameters(), lr=0.0001)
-    scheduler = optim.lr_scheduler.StepLR(optimizer,step_size = 4,verbose = True, gamma = 0.65)  # Adjust the step_size and gamma as needed
+    scheduler = optim.lr_scheduler.StepLR(optimizer,step_size = 4,verbose = True, gamma = 0.65)  
 
     content_losses = []
     style_losses = []
@@ -111,7 +99,6 @@ def train(content_dir, style_dir, gamma1, epochs, batch_size, encoder_path, deco
         # Calculate the estimated remaining time for training
         remaining_time = (epochs - epoch) * epoch_time
 
-        # Print timing information
         print(f"Epoch [{epoch}/{epochs}] - Time taken: {epoch_time:.2f} seconds - Remaining time: {remaining_time/60:.2f} minutes")
 
         scheduler.step()
@@ -128,9 +115,16 @@ def train(content_dir, style_dir, gamma1, epochs, batch_size, encoder_path, deco
 
     torch.save(model.decoder.state_dict(), decoder_path) 
 
-    loss_plot(content_losses,style_losses,total_losses, preview_path)           
+    plt.figure(figsize=(10, 6))
+    plt.plot(total_losses, label='Content + Style', color='blue')
+    plt.plot(content_losses, label='Content', color='orange')
+    plt.plot(style_losses, label='Style', color='green')
+    plt.xlabel('epoch')
+    plt.ylabel('loss')
+    plt.legend()
+    plt.savefig(preview_path)
+    plt.show()  
        
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train AdaIN style transfer model")
     parser.add_argument("-content_dir", type=str, help="Directory containing content images")
