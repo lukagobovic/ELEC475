@@ -169,7 +169,6 @@ class AdaIN_net(nn.Module):
             #   your code here ...
             style_feats = self.encode(style)
             content_feats = self.encode(content)[-1]
-            feat = self.adain(content_feats, style_feats[-1])
-            feat = alpha * t + (1 - alpha) * content_feats
-
-            return self.decode(feat)
+            t = self.adain(content_feats, style_feats[-1])
+            t = alpha * t + (1 - alpha) * content_feats
+            return self.decode(t)

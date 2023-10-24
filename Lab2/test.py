@@ -29,7 +29,7 @@ if __name__ == '__main__':
 	use_cuda = False
 	if opt.cuda == 'y' or opt.cuda == 'Y':
 		use_cuda = True
-	out_dir = './output/'
+	out_dir = './output/1kOutputs/'
 	os.makedirs(out_dir, exist_ok=True)
 
 	encoder = net.encoder_decoder.encoder
