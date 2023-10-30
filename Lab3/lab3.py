@@ -39,13 +39,16 @@ class encoder:
         nn.ReLU(),  # relu4-1, this is the last layer used
     )
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
+
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 train_dataset = datasets.CIFAR100(root='./data', train=True, download=True, transform=transform)
 test_dataset = datasets.CIFAR100(root='./data', train=False, download=True, transform=transform)
 
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, pin_memory=True)
+test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, pin_memory=True)
 
 
 # Step 2: Create a custom frontend for classification
@@ -90,7 +93,7 @@ def train(model, train_loader, criterion, optimizer, num_epochs):
 
 # Initialize the model and training parameters
 num_classes = 100  # Number of classes in CIFAR-100
-model = VGGCustomClassifier(num_classes)
+model = VGGCustomClassifier(num_classes).to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=0.0005, momentum=0.9)
 num_epochs = 10  # You can adjust this value
