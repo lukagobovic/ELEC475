@@ -1,0 +1,1 @@
+python lab3.py --mode evaluate --output_path ModdedWithDropTransformBN.pth
