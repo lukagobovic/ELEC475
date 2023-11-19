@@ -9,8 +9,6 @@ import torchvision.transforms as transforms
 from torchvision.models.resnet import ResNet18_Weights
 import matplotlib.pyplot as plt
 
-
-
 def visualize_detected_and_ground_truth(image, detected_cars, ground_truth):
     image_copy = image.copy()
     for box in detected_cars:

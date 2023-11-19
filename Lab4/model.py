@@ -1,20 +1,7 @@
-import os
-import cv2
-import torch
-from torch.utils.data import Dataset
-from torchvision import transforms
 import torch.nn as nn
 import torchvision.models as models
-import torch.optim as optim
-import matplotlib.pyplot as plt
 from torchvision.models.resnet import ResNet18_Weights
-import time  # Import the time module
-from torchvision.datasets import ImageFolder
 import torch.nn.functional as F
-from torch.multiprocessing import freeze_support
-from customdataset import CustomDataset  # Import the CustomDataset from the module
-
-
 
 class YodaClassifier(nn.Module):
     def __init__(self, num_classes, weights=ResNet18_Weights.IMAGENET1K_V1):
