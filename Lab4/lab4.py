@@ -14,6 +14,9 @@ import torch.nn.functional as F
 from torch.multiprocessing import freeze_support
 from customdataset import CustomDataset  
 import argparse
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+import numpy as np
 
 def train_model(model, train_loader, test_loader, criterion, optimizer, scheduler, num_epochs, device, patience=6):
     train_losses = []
@@ -84,11 +87,14 @@ def train_model(model, train_loader, test_loader, criterion, optimizer, schedule
     print(f'Time: {((total_end_time - total_start_time) / 60.0):.2f} minutes')
     return train_losses, val_losses
 
+
 def evaluate(model, dataloader, criterion, device):
     model.eval() 
-    total_correct = 0
+    total_correct_top1 = 0
     total_samples = 0
     val_loss = 0
+    all_labels = []
+    all_predictions = []
 
     with torch.no_grad():
         for inputs, labels in dataloader:
@@ -96,15 +102,43 @@ def evaluate(model, dataloader, criterion, device):
             outputs = model(inputs)
             _, predicted = torch.max(outputs, 1)
             total_samples += labels.size(0)
-            total_correct += (predicted == labels).sum().item()
+            total_correct_top1 += (predicted == labels).sum().item()
+
+            all_labels.extend(labels.cpu().numpy())
+            all_predictions.extend(predicted.cpu().numpy())
 
             val_loss += criterion(outputs, labels).item()
 
-
-    accuracy = total_correct / total_samples
+    top1_accuracy = total_correct_top1 / total_samples
     avg_val_loss = val_loss / len(dataloader)
 
-    return accuracy, avg_val_loss
+    # Confusion Matrix
+    cm = confusion_matrix(all_labels, all_predictions)
+
+    # Print metrics along with percentages
+    total = np.sum(cm)
+    true_positives = cm[1, 1]
+    true_negatives = cm[0, 0]
+    false_positives = cm[0, 1]
+    false_negatives = cm[1, 0]
+
+    print(f'True Positives: {true_positives} ({true_positives / total:.2%} of total)')
+    print(f'True Negatives: {true_negatives} ({true_negatives / total:.2%} of total)')
+    print(f'False Positives: {false_positives} ({false_positives / total:.2%} of total)')
+    print(f'False Negatives: {false_negatives} ({false_negatives / total:.2%} of total)')
+
+    # Confusion Matrix
+    plt.figure(figsize=(15, 10))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=np.arange(2), yticklabels=np.arange(2))
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Confusion Matrix')
+    plt.savefig('ConfusionMatrix')
+    plt.show()
+
+    return top1_accuracy, avg_val_loss
+
+
 
 def main(args):
     freeze_support()
@@ -121,6 +155,7 @@ def main(args):
         transform=transforms.Compose([
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(degrees=20),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
         ]),
@@ -151,7 +186,7 @@ def main(args):
 
     if args.mode == "train":
         train_losses, val_losses = train_model(model, train_loader, test_loader, criterion, optimizer, scheduler, args.num_epochs, device, patience=5)
-        torch.save(model.state_dict(), args.output_path)
+        torch.save(model.state_dict(), args.pth_file)
         #plot the losses
         plt.figure(figsize=(10, 5))
         plt.plot(train_losses, label='Training Loss')

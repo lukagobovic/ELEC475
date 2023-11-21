@@ -69,109 +69,109 @@ class KittiDataset(Dataset):
                 ROIs += [(pt1,pt2)]
         return ROIs
 #
-class Anchors2():
-    grid = (4, 12)
-    min_range = (100,100)
-    max_range = (376,710)
-    shapes = [(150,150)]
+# class Anchors2():
+#     grid = (4, 12)
+#     min_range = (100,100)
+#     max_range = (376,710)
+#     shapes = [(150,150)]
 
 
-    def calc_anchor_centers(image_shape, anchor_grid):
-        dy = int(image_shape[0]/anchor_grid[0])
-        dx = int(image_shape[1]/anchor_grid[1])
+#     def calc_anchor_centers(image_shape, anchor_grid):
+#         dy = int(image_shape[0]/anchor_grid[0])
+#         dx = int(image_shape[1]/anchor_grid[1])
 
-        centers = []
-        for y_idx in range(anchor_grid[0]):
-            for x_idx in range(anchor_grid[1]):
-                center_y = int((y_idx+1)*dy - dy/2)
-                center_x = int((x_idx+1)*dx - dx/2)
-                centers += [(center_y, center_x)]
+#         centers = []
+#         for y_idx in range(anchor_grid[0]):
+#             for x_idx in range(anchor_grid[1]):
+#                 center_y = int((y_idx+1)*dy - dy/2)
+#                 center_x = int((x_idx+1)*dx - dx/2)
+#                 centers += [(center_y, center_x)]
 
-        return centers
+#         return centers
 
-    def get_anchor_ROIs(image, anchor_centers, anchor_shapes):
-        ROIs = []
-        boxes = []
+#     def get_anchor_ROIs(image, anchor_centers, anchor_shapes):
+#         ROIs = []
+#         boxes = []
 
-        for j in range(len(anchor_centers)):
-            center = anchor_centers[j]
+#         for j in range(len(anchor_centers)):
+#             center = anchor_centers[j]
 
-            for k in range(len(anchor_shapes)):
-                anchor_shape = anchor_shapes[k]
-                pt1 = [int(center[0] - (anchor_shape[0]/2)), int(center[1] - (anchor_shape[1]/2))]
-                pt2 = [int(center[0] + (anchor_shape[0]/2)), int(center[1] + (anchor_shape[1]/2))]
+#             for k in range(len(anchor_shapes)):
+#                 anchor_shape = anchor_shapes[k]
+#                 pt1 = [int(center[0] - (anchor_shape[0]/2)), int(center[1] - (anchor_shape[1]/2))]
+#                 pt2 = [int(center[0] + (anchor_shape[0]/2)), int(center[1] + (anchor_shape[1]/2))]
 
-                # pt1 = [max(0, pt1[0]), min(pt1[1], image.shape[1])]
-                # pt2 = [max(0, pt2[0]), min(pt2[1], image.shape[1])]
-                pt1 = [max(0, pt1[0]), max(0, pt1[1])]
-                pt2 = [min(pt2[0],  image.shape[0]), min(pt2[1], image.shape[1])]
+#                 # pt1 = [max(0, pt1[0]), min(pt1[1], image.shape[1])]
+#                 # pt2 = [max(0, pt2[0]), min(pt2[1], image.shape[1])]
+#                 pt1 = [max(0, pt1[0]), max(0, pt1[1])]
+#                 pt2 = [min(pt2[0],  image.shape[0]), min(pt2[1], image.shape[1])]
 
-                # print('break 777: ', pt1, pt2)
-                ROI = image[pt1[0]:pt2[0],pt1[1]:pt2[1],:]
-                ROIs += [ROI]
-                boxes += [(pt1,pt2)]
+#                 # print('break 777: ', pt1, pt2)
+#                 ROI = image[pt1[0]:pt2[0],pt1[1]:pt2[1],:]
+#                 ROIs += [ROI]
+#                 boxes += [(pt1,pt2)]
 
-        return ROIs, boxes
+#         return ROIs, boxes
 
-    def batch_ROIs(self, ROIs, shape):
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Resize(shape)
-        ])
+#     def batch_ROIs(self, ROIs, shape):
+#         transform = transforms.Compose([
+#             transforms.ToTensor(),
+#             transforms.Resize(shape)
+#         ])
 
-        batch = torch.empty(size=(len(ROIs), 3, shape[0], shape[1]))
+#         batch = torch.empty(size=(len(ROIs), 3, shape[0], shape[1]))
 
-        for i in range(len(ROIs)):
-            ROI = ROIs[i]
-            ROI = transform(ROI)
-            ROI = torch.swapaxes(ROI, 1, 2)
-            batch[i] = ROI
+#         for i in range(len(ROIs)):
+#             ROI = ROIs[i]
+#             ROI = transform(ROI)
+#             ROI = torch.swapaxes(ROI, 1, 2)
+#             batch[i] = ROI
 
-        return batch
+#         return batch
     
-    def minibatch_ROIs(ROIs, boxes, shape, minibatch_size):
-        minibatch = []
-        minibatch_boxes = []
-        min_idx = 0
-        while min_idx < len(ROIs)-1:
-            max_idx = min(min_idx + minibatch_size, len(ROIs))
-            minibatch += [batch_ROIs(ROIs[min_idx:max_idx], shape)]
-            minibatch_boxes += [boxes[min_idx:max_idx]]
-            min_idx = max_idx + 1
-        return minibatch, minibatch_boxes
+#     def minibatch_ROIs(ROIs, boxes, shape, minibatch_size):
+#         minibatch = []
+#         minibatch_boxes = []
+#         min_idx = 0
+#         while min_idx < len(ROIs)-1:
+#             max_idx = min(min_idx + minibatch_size, len(ROIs))
+#             minibatch += [batch_ROIs(ROIs[min_idx:max_idx], shape)]
+#             minibatch_boxes += [boxes[min_idx:max_idx]]
+#             min_idx = max_idx + 1
+#         return minibatch, minibatch_boxes
 
-    def strip_ROIs(class_ID, label_list):
-        ROIs = []
-        for i in range(len(label_list)):
-            ROI = label_list[i]
-            if ROI[1] == class_ID:
-                pt1 = (int(ROI[3]),int(ROI[2]))
-                pt2 = (int(ROI[5]), int(ROI[4]))
-                ROIs += [(pt1,pt2)]
-        return ROIs
+#     def strip_ROIs(class_ID, label_list):
+#         ROIs = []
+#         for i in range(len(label_list)):
+#             ROI = label_list[i]
+#             if ROI[1] == class_ID:
+#                 pt1 = (int(ROI[3]),int(ROI[2]))
+#                 pt2 = (int(ROI[5]), int(ROI[4]))
+#                 ROIs += [(pt1,pt2)]
+#         return ROIs
 
-    def calc_IoU(boxA, boxB):
-        # print('break 209: ', boxA, boxB)
-        # determine the (x, y)-coordinates of the intersection rectangle
-        xA = max(boxA[0][1], boxB[0][1])
-        yA = max(boxA[0][0], boxB[0][0])
-        xB = min(boxA[1][1], boxB[1][1])
-        yB = min(boxA[1][0], boxB[1][0])
-        # compute the area of intersection rectangle
-        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-        # compute the area of both the prediction and ground-truth
-        # rectangles
-        boxAArea = (boxA[1][1] - boxA[0][1] + 1) * (boxA[1][0] - boxA[0][0] + 1)
-        boxBArea = (boxB[1][1] - boxB[0][1] + 1) * (boxB[1][0] - boxB[0][0] + 1)
-        # compute the intersection over union by taking the intersection
-        # area and dividing it by the sum of prediction + ground-truth
-        # areas - the interesection area
-        iou = interArea / float(boxAArea + boxBArea - interArea)
-        # return the intersection over union value
-        return iou
+#     def calc_IoU(boxA, boxB):
+#         # print('break 209: ', boxA, boxB)
+#         # determine the (x, y)-coordinates of the intersection rectangle
+#         xA = max(boxA[0][1], boxB[0][1])
+#         yA = max(boxA[0][0], boxB[0][0])
+#         xB = min(boxA[1][1], boxB[1][1])
+#         yB = min(boxA[1][0], boxB[1][0])
+#         # compute the area of intersection rectangle
+#         interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+#         # compute the area of both the prediction and ground-truth
+#         # rectangles
+#         boxAArea = (boxA[1][1] - boxA[0][1] + 1) * (boxA[1][0] - boxA[0][0] + 1)
+#         boxBArea = (boxB[1][1] - boxB[0][1] + 1) * (boxB[1][0] - boxB[0][0] + 1)
+#         # compute the intersection over union by taking the intersection
+#         # area and dividing it by the sum of prediction + ground-truth
+#         # areas - the interesection area
+#         iou = interArea / float(boxAArea + boxBArea - interArea)
+#         # return the intersection over union value
+#         return iou
 
-    def calc_max_IoU(ROI, ROI_list):
-        max_IoU = 0
-        for i in range(len(ROI_list)):
-            max_IoU = max(max_IoU, Anchors2.calc_IoU(ROI, ROI_list[i]))
-        return max_IoU
+#     def calc_max_IoU(ROI, ROI_list):
+#         max_IoU = 0
+#         for i in range(len(ROI_list)):
+#             max_IoU = max(max_IoU, Anchors2.calc_IoU(ROI, ROI_list[i]))
+#         return max_IoU

@@ -28,7 +28,6 @@ class CustomDataset(Dataset):
 
         image = cv2.resize(image, self.target_size)
 
-        # Convert NumPy array to PIL Image
         image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
         if self.transform:
