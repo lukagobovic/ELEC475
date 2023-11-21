@@ -34,7 +34,6 @@ def calculate_mean_iou(detected_cars, ground_truth_cars_list):
 
         for detected_car in detected_image_cars:
             for ground_truth_car in ground_truth_cars:
-                # Ensure that the input arguments are properly formatted as (box, box)
                 iou = Anchors().calc_IoU(detected_car, ground_truth_car)
                 max_iou = max(max_iou, iou)
 
@@ -43,9 +42,36 @@ def calculate_mean_iou(detected_cars, ground_truth_cars_list):
     mean_iou = total_iou / total_detected_cars if total_detected_cars > 0 else 0
     return mean_iou
 
+# def calculate_mean_iou(all_detected_cars, ground_truth_cars_list, detected_indices):
+#     total_iou = 0
+#     total_detected_cars = len(detected_indices)
+
+#     for idx in detected_indices:
+#         detected_cars = all_detected_cars[idx]
+#         ground_truth_cars = ground_truth_cars_list[idx]
+
+#         for detected_car in detected_cars:
+#             max_iou = 0
+
+#             for ground_truth_car in ground_truth_cars:
+#                 iou = Anchors().calc_IoU(detected_car, ground_truth_car)
+#                 max_iou = max(max_iou, iou)
+
+#             total_iou += max_iou
+
+#         # Check for any missed ground truth cars
+#         for ground_truth_car in ground_truth_cars:
+#             if all(detected_car is not None for detected_car in detected_cars):
+#                 continue
+
+#             iou = Anchors().calc_IoU(None, ground_truth_car)
+#             total_iou += iou
+
+#     mean_iou = total_iou / total_detected_cars if total_detected_cars > 0 else 0
+#     return mean_iou
 
 def main(args):
-    print('running YODA test...')
+    print('running YODA test')
 
     input_dir = None
     if args.i is not None:
@@ -91,8 +117,10 @@ def main(args):
             detected_indices.append(idx)
             all_detected_cars.append(detected_cars)
 
+        # Uncomment this to visualize the ground truth cars overlayed with the model predicitons
         # visualize_detected_and_ground_truth(image, detected_cars, ground_truth_cars)
- 
+
+    # mean_iou = calculate_mean_iou(all_detected_cars, ground_truth_cars_list, detected_indices)
     mean_iou = calculate_mean_iou(all_detected_cars, ground_truth_cars_list)
     print(f'Mean IoU over the test partition: {mean_iou}')
 

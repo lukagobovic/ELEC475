@@ -1,0 +1,2 @@
+python lab4.py --batch_size 96 --learning_rate 0.0001 --momentum 0.9 --num_epochs 40 --pth_file yoda_classifier_with_early_stopping_LR00001B96.pth --loss_plot_path 
+yoda_classifier_with_early_stopping_LR00001B96.png --mode evaluate

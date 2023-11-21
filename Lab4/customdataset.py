@@ -14,7 +14,6 @@ class CustomDataset(Dataset):
         self.image_folder = os.path.join(root_dir, mode)
         self.label_file = os.path.join(root_dir, mode, 'labels.txt').replace('\\', '/')
 
-        # Read the labels file
         self.labels = self._read_labels()
 
     def __len__(self):
@@ -33,8 +32,7 @@ class CustomDataset(Dataset):
         if self.transform:
             image = self.transform(image)
 
-        # Ensure label is a tensor with the correct shape
-        label = int(self.labels[idx][1])  # Convert 'Car' to 1, 'NoCar' to 0
+        label = int(self.labels[idx][1])  
 
         return image, label
 
