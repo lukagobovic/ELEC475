@@ -28,16 +28,13 @@ class RegressionHead(nn.Module):
         x = self.dropout(x)
         return self.fc(x)
 
-# Load pre-trained ResNet-18 model
 resnet18 = models.resnet18(weights=ResNet18_Weights.DEFAULT)
 in_channels = resnet18.fc.in_features
-
 
 model = nn.Sequential(
     *list(resnet18.children())[:-2],  # Remove the last two layers
     RegressionHead(in_channels, 2) 
 )
-
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model.to(device)
@@ -53,7 +50,6 @@ def train_model(model, train_dataloader, test_dataloader, criterion, optimizer, 
 
     for epoch in range(num_epochs):
         start_time = time.time()
-        # Training
         model.train()
         epoch_loss = 0.0
 
@@ -108,7 +104,6 @@ def train_model(model, train_dataloader, test_dataloader, criterion, optimizer, 
     total_time_elapsed = total_end_time - total_start_time
     print(f"Training complete in {total_time_elapsed // 60:.0f}m {total_time_elapsed % 60:.0f}s")
 
-    # Plotting
     plt.figure(figsize=(12, 6))
     plt.plot(train_losses, label='Training Loss')
     plt.plot(val_losses, label='Validation Loss')
@@ -117,12 +112,10 @@ def train_model(model, train_dataloader, test_dataloader, criterion, optimizer, 
     plt.legend()
     plt.savefig(plot_path)
 
-    # Save the trained model
     torch.save(model.state_dict(), pthpath)
 
 def euclidean_distance(pred, target):
     return torch.sqrt(torch.sum((pred - target) ** 2, dim=1))
-
 
 def evaluate_model(model, test_dataloader,printimages):
     print("evaluating")
@@ -141,14 +134,11 @@ def evaluate_model(model, test_dataloader,printimages):
 
             # Iterate through all images in the batch
             for i in range(val_images.shape[0]):
-                # Get model predictions from val_outputs
                 total_images += 1
                 predictions = val_outputs[i].squeeze().cpu().numpy()
 
-                # Move the tensor to the CPU before converting to a numpy array
                 image_np = (val_images[i].cpu().permute(1, 2, 0).numpy() * 255).astype(np.uint8)
 
-                # Convert the image to BGR format (OpenCV uses BGR)
                 image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
 
                 # Scale true and predicted nose positions based on the displayed image size
@@ -161,26 +151,20 @@ def evaluate_model(model, test_dataloader,printimages):
                     int(predictions[1] * image_bgr.shape[0] / val_images.shape[2])
                 )
 
-                # Calculate the Euclidean distance between predicted and true nose positions
                 distance = np.sqrt((predicted_nose_scaled[0] - true_nose_scaled[0]) ** 2 +
                                    (predicted_nose_scaled[1] - true_nose_scaled[1]) ** 2)
                 all_distances.append(distance)
 
                 if printimages == "True" and i == 0: # Only draw the first image per batch
-                    # Draw circles on the image for true and predicted nose positions
                     cv2.circle(image_bgr, true_nose_scaled, 8, (0, 255, 0), 1)  # Ground truth in green
                     cv2.circle(image_bgr, predicted_nose_scaled, 8, (0, 0, 255), 1)  # Prediction in red
 
-                    # Display the image with ground truth and predictions
                     cv2.imshow(f"Batch {batch_idx}, Image {i}", image_bgr)
-                    cv2.waitKey(10000)  # Display the image for 2 seconds (2000 milliseconds)
+                    cv2.waitKey(2000)  
 
-                    # Check if the window exists before trying to destroy it
                     if cv2.getWindowProperty(f"Batch {batch_idx}, Image {i}", cv2.WND_PROP_VISIBLE) >= 1:
                         cv2.destroyAllWindows()
 
-                    # if key == ord('q'):
-                    #     exit(0)  # Break the loop if 'q' is pressed
 
             batch_end_time = time.time()
             batch_time_taken = batch_end_time - batch_start_time
@@ -191,7 +175,7 @@ def evaluate_model(model, test_dataloader,printimages):
     avg_time_per_image = total_time_taken / total_images if total_images > 0 else 0.0
     print(f"Processed {total_images} images in {total_time_taken:.2f} seconds")
     print(f"Average time per image: {avg_time_per_image * 1000:.2f} milliseconds")
-    # Calculate and print the localization accuracy statistics for the entire dataset
+
     all_distances = np.array(all_distances)
     print("Localization Accuracy Statistics:")
     print(f"Minimum Distance: {np.min(all_distances):.4f}")
@@ -219,7 +203,6 @@ def main(args):
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
-    # Set up training parameters
     optimizer = optim.Adam(model.parameters(), args.learning_rate, weight_decay=5e-4)
     scheduler = ReduceLROnPlateau(optimizer, mode='min')
     criterion = nn.SmoothL1Loss()
